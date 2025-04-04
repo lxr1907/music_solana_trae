@@ -2,6 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use anchor_spl::token::MintTo; // 明确引入MintTo结构体
 
+mod errors;
+use errors::ErrorCode;
 use solana_program::{
     program::{invoke},
     system_instruction,
@@ -284,6 +286,3 @@ pub struct InitializeBuyer<'info> {
 pub struct Buyer {
     pub purchased_music_ids: Vec<u64>, // 用户购买的音乐 ID 列表
 }
-
-mod errors;
-use errors::ErrorCode;
