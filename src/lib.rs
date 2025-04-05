@@ -18,45 +18,18 @@ mod music_store {
         beneficiary: Pubkey,
         bump: u8,
     ) -> Result<()> {
-        let music_account_info = &ctx.accounts.music.to_account_info();
-        let rent = Rent::get()?;
+        let music = &mut ctx.accounts.music;
         
-        // 动态计算所需空间
-        let space = 8 + 8 + (name.len() + 4) + 8 + 32 + 32 + 1 + 1; // discriminator, id, name, price, owner, royalty address, percentage, bump
-        let lamports = rent.minimum_balance(space);
-
-        invoke_signed(
-            &system_instruction::create_account(
-                &ctx.accounts.signer.key(),
-                &music_account_info.key(),
-                lamports,
-                space as u64,
-                &ctx.program_id,
-            ),
-            &[
-                ctx.accounts.signer.to_account_info(),
-                music_account_info.clone(),
-                ctx.accounts.system_program.to_account_info(),
-            ],
-            &[&[b"music", music_id.to_be_bytes().as_ref(), &[bump]]],
-        )?;
-
-        let music = Music {
-            id: music_id,
-            name,
-            price,
-            owner: *ctx.accounts.signer.key,
-            royalty: Royalty {
-                address: beneficiary,
-                percentage: 100,
-            },
-            bump,
+        // 设置Music结构体字段
+        music.id = music_id;
+        music.name = name.clone();
+        music.price = price;
+        music.owner = *ctx.accounts.signer.key;
+        music.royalty = Royalty {
+            address: beneficiary,
+            percentage: 100,
         };
-
-        let serialized_data = music.try_to_vec()?;
-        let mut data = vec![0; space as usize]; // 创建一个与账户大小相等的向量
-        data[..serialized_data.len()].copy_from_slice(&serialized_data); // 将序列化数据复制到新向量中
-        music_account_info.try_borrow_mut_data()?.copy_from_slice(&data);
+        music.bump = bump;
 
         msg!("Music uploaded: {} ({} lamports)", music.name, music.price);
         Ok(())
@@ -80,7 +53,6 @@ mod music_store {
             msg!("Buyer initialized with PDA");
         }
 
-        require!(music.id == music_id, ErrorCode::MusicNotFound);
         require!(
             !buyer.purchased_music_ids.contains(&music_id),
             ErrorCode::AlreadyPurchased
@@ -113,8 +85,9 @@ mod music_store {
 }
 
 #[derive(Accounts)]
+#[instruction(music_id: u64)]
 pub struct BuyMusic<'info> {
-    #[account(mut)]
+    #[account(mut, seeds = [b"music", music_id.to_be_bytes().as_ref()], bump = music.bump)]
     pub music: Account<'info, Music>,
     #[account(init_if_needed, payer = payer, space = 8 + 1024, seeds = [b"buyer", payer.key().as_ref()], bump)]
     pub buyer: Account<'info, Buyer>,
@@ -148,12 +121,18 @@ pub struct Buyer {
 // InitializeBuyer结构体已移除，功能整合到BuyMusic结构体中
 
 #[derive(Accounts)]
+#[instruction(music_id: u64, name: String, price: u64, beneficiary: Pubkey, bump: u8)]
 pub struct UploadMusic<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    /// CHECK: This is manually initialized and verified.
-    #[account(mut)]
-    pub music: UncheckedAccount<'info>,
+    #[account(
+        init,
+        seeds = [b"music", music_id.to_be_bytes().as_ref()],
+        bump,
+        payer = signer,
+        space = 8 + 8 + (name.len() + 4) + 8 + 32 + 32 + 1 + 1 // discriminator, id, name, price, owner, royalty address, percentage, bump
+    )]
+    pub music: Account<'info, Music>,
     pub system_program: Program<'info, System>,
 }
 

@@ -2,13 +2,18 @@ import * as anchor from "@project-serum/anchor";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 
 // 假设 program 已经初始化并且 provider 是当前连接的钱包
-const musicId = new anchor.BN(4); // 示例音乐ID
+const musicId = new anchor.BN(10); // 示例音乐ID
 const name = "Sample Song";
 const price = new anchor.BN(1000000); // 示例价格
 
-// 计算音乐 PDA 和 bump
+// 计算音乐PDA和bump
+// 将musicId转换为与合约中一致的格式 (to_be_bytes)
+// 在Rust中，to_be_bytes()返回固定长度的大端序字节数组
+// 正确转换musicId为字节数组，匹配Rust的to_be_bytes()
+const musicIdBuffer = Buffer.alloc(8);
+musicId.toArrayLike(Buffer, "be", 8).copy(musicIdBuffer); // 使用大端序(be)来匹配Rust的to_be_bytes()
 const [musicPda, musicBump] = await PublicKey.findProgramAddress(
-  [Buffer.from("music"), musicId.toArrayLike(Buffer, "be", 8)],
+  [Buffer.from("music"), musicIdBuffer],
   pg.program.programId
 );
 
@@ -56,12 +61,12 @@ async function buyMusic() {
         music: musicPda,
         buyer: buyerPda, // 使用初始化的买家PDA账户
         payer: pg.wallet.publicKey,
-
+        beneficiary: pg.wallet.publicKey, // 使用上传者的公钥作为受益人，确保与music.owner匹配
         systemProgram: SystemProgram.programId,
       })
       .signers([pg.wallet.keypair])
       .rpc();
-    
+
     console.log("Music purchased successfully.");
     return true;
   } catch (error) {
@@ -87,4 +92,4 @@ async function main() {
   });
 }
 
-main().catch(err => console.error(err));
+main().catch((err) => console.error(err));

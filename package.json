@@ -1,0 +1,17 @@
+{
+  "name": "trae_demo",
+  "version": "1.0.0",
+  "description": "Solana音乐商店演示",
+  "type": "module",
+  "scripts": {
+    "start": "node --loader ts-node/esm client/client.ts"
+  },
+  "dependencies": {
+    "@project-serum/anchor": "^0.26.0",
+    "@solana/web3.js": "^1.73.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.4"
+  }
+}
