@@ -56,7 +56,7 @@ async function buyMusic() {
         music: musicPda,
         buyer: buyerPda, // 使用初始化的买家PDA账户
         payer: pg.wallet.publicKey,
-        beneficiary: pg.wallet.publicKey, // 使用上传者的公钥作为受益人，确保与music.owner匹配
+
         systemProgram: SystemProgram.programId,
       })
       .signers([pg.wallet.keypair])

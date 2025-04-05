@@ -70,7 +70,6 @@ mod music_store {
         // 如果是新账户，初始化购买记录数组
         if buyer.purchased_music_ids.is_empty() {
             buyer.purchased_music_ids = vec![];
-            buyer.bump = ctx.bumps.buyer;
             
             // 验证SOL余额
             let min_balance = 100_000_000; // 0.1 SOL
@@ -91,12 +90,12 @@ mod music_store {
         invoke(
             &system_instruction::transfer(
                 ctx.accounts.payer.key,
-                &ctx.accounts.beneficiary.key(),
+                &music.royalty.address,
                 music.price,
             ),
             &[
                 ctx.accounts.payer.to_account_info(),
-                ctx.accounts.beneficiary.to_account_info(),
+                ctx.accounts.music.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
             ],
         )?;
@@ -121,8 +120,6 @@ pub struct BuyMusic<'info> {
     pub buyer: Account<'info, Buyer>,
     #[account(mut)]
     pub payer: Signer<'info>,
-    #[account(mut, address = music.owner)] // 验证受益人地址
-    pub beneficiary: SystemAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -146,7 +143,6 @@ pub struct Music {
 #[account]
 pub struct Buyer {
     pub purchased_music_ids: Vec<u64>,
-    pub bump: u8,
 }
 
 // InitializeBuyer结构体已移除，功能整合到BuyMusic结构体中
@@ -163,7 +159,7 @@ pub struct UploadMusic<'info> {
 
 #[derive(Accounts)]
 pub struct HasPurchased<'info> {
-    #[account(seeds = [b"buyer", signer.key().as_ref()], bump = buyer.bump)]
+    #[account(seeds = [b"buyer", signer.key().as_ref()], bump)]
     pub buyer: Account<'info, Buyer>,
     pub signer: Signer<'info>,
 }
