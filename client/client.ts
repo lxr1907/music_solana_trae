@@ -1,8 +1,9 @@
 import * as anchor from "@project-serum/anchor";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 // 假设 program 已经初始化并且 provider 是当前连接的钱包
-const musicId = new anchor.BN(10); // 示例音乐ID
+const musicId = new anchor.BN(11); // 示例音乐ID
 const name = "Sample Song";
 const price = new anchor.BN(1000000); // 示例价格
 
@@ -51,26 +52,30 @@ function uploadMusic(callback) {
   }
 }
 
-// 购买音乐的函数
-async function buyMusic() {
+// 新增：使用 Token 购买音乐的函数
+async function buyMusicWithToken(
+  buyerTokenAccount: PublicKey,
+  ownerTokenAccount: PublicKey
+) {
   try {
-    // 调用buyMusic方法
     await pg.program.methods
-      .buyMusic(musicId)
+      .buyMusicToken(musicId)
       .accounts({
         music: musicPda,
-        buyer: buyerPda, // 使用初始化的买家PDA账户
+        buyer: buyerPda,
         payer: pg.wallet.publicKey,
-        beneficiary: pg.wallet.publicKey, // 使用上传者的公钥作为受益人，确保与music.owner匹配
+        buyerTokenAccount: buyerTokenAccount,
+        ownerTokenAccount: ownerTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
       .signers([pg.wallet.keypair])
       .rpc();
 
-    console.log("Music purchased successfully.");
+    console.log("Music purchased successfully with token.");
     return true;
   } catch (error) {
-    console.error("Error purchasing music:", error);
+    console.error("Error purchasing music with token:", error);
     return false;
   }
 }
@@ -79,17 +84,27 @@ async function buyMusic() {
 
 // 执行上传和购买操作
 async function main() {
-  // 使用回调方式处理上传结果
-  uploadMusic((uploaded) => {
-    if (uploaded) {
-      // 确保上传成功后再购买
-      console.log("Proceeding to purchase music...");
-      // 直接调用购买方法，不再使用sleep延迟
-      buyMusic();
-    } else {
-      console.log("Skipping purchase because upload failed.");
-    }
-  });
+  // 假设已经获取到买家和所有者的 Token 账户
+  const buyerTokenAccount = new PublicKey(
+    "iMqV2UhrefEibCem3TvBwe95K1boFAHmPqN5SWZXnVM"
+  );
+  const ownerTokenAccount = new PublicKey(
+    "iMqV2UhrefEibCem3TvBwe95K1boFAHmPqN5SWZXnVM"
+  );
+  await buyMusicWithToken(buyerTokenAccount, ownerTokenAccount);
+  // // 使用回调方式处理上传结果
+  // uploadMusic(async (uploaded) => {
+  //   if (uploaded) {
+  //     // 确保上传成功后再购买
+  //     console.log("Proceeding to purchase music...");
+  //     // 假设已经获取到买家和所有者的 Token 账户
+  //     const buyerTokenAccount = new PublicKey("iMqV2UhrefEibCem3TvBwe95K1boFAHmPqN5SWZXnVM");
+  //     const ownerTokenAccount = new PublicKey("iMqV2UhrefEibCem3TvBwe95K1boFAHmPqN5SWZXnVM");
+  //     await buyMusicWithToken(buyerTokenAccount, ownerTokenAccount);
+  //   } else {
+  //     console.log("Skipping purchase because upload failed.");
+  //   }
+  // });
 }
 
 main().catch((err) => console.error(err));
