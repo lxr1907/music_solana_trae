@@ -1,8 +1,7 @@
 use anchor_lang::prelude::*;
 use solana_program::{program::invoke, system_instruction};
-use anchor_lang::solana_program::program::invoke_signed;
 
-declare_id!("HCX9wLEsp5YRfrzfGj5iWtiZ3zmUVfGKpZVaxcuwmsP7");
+declare_id!("E2VamReTdVrFdHxNYnnscEfBQ3h5sg4FikPiWkSn2Cto");
 
 #[program]
 mod music_store {
@@ -19,7 +18,7 @@ mod music_store {
         bump: u8,
     ) -> Result<()> {
         let music = &mut ctx.accounts.music;
-        
+
         // 设置Music结构体字段
         music.id = music_id;
         music.name = name.clone();
@@ -39,11 +38,11 @@ mod music_store {
     pub fn buy_music(ctx: Context<BuyMusic>, music_id: u64) -> Result<()> {
         let music = &ctx.accounts.music;
         let buyer = &mut ctx.accounts.buyer;
-        
+
         // 如果是新账户，初始化购买记录数组
         if buyer.purchased_music_ids.is_empty() {
             buyer.purchased_music_ids = vec![];
-            
+
             // 验证SOL余额
             let min_balance = 100_000_000; // 0.1 SOL
             require!(
